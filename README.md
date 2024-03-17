@@ -7,12 +7,14 @@ It is based on Nick Bild's [Local LLM Assistant](https://github.com/nickbild/loc
 
 The pipeline is fairly simple:
 
-- ASR: OpenAI Whisper, "base" model.
+- ASR: [whisper.cpp](https://github.com/ggerganov/whisper.cpp)
 - LLM: TinyLlama 1.1B, wrapped using [llamafile](https://github.com/Mozilla-Ocho/llamafile)
 - TTS: Replaced `espeak` with [piper](https://github.com/rhasspy/piper), which has a much better voice quality.
 
 The control of the bot is also enhanced. Originally it was "push-to-trigger" mode with a fixed (3-second) length of recording.
 I changed it into a true "push-to-talk" mode, allowing me to record voice with arbitrary length.
+
+Everything run locally - once you've installed the dependencies, this program will work even when your device is offline.
 
 ## Usage
 
@@ -32,7 +34,7 @@ I used the pre-installed ARM64 image:
 
 https://cdimage.ubuntu.com/releases/jammy/release/
 
-### Install dependencies
+### Install system dependencies
 
 ```bash
 sudo apt update
@@ -45,36 +47,41 @@ source "$HOME/.cargo/env"
 pip3 install openai openai-whisper RPi.GPIO pyaudio
 ```
 
-### Download LLM model
+### Install the program
 
-Download the TinyLlama model wrapped with [llamafile](https://github.com/Mozilla-Ocho/llamafile), which can be executed directly on Raspberry Pi.
-
-Go to [llamafile](https://github.com/Mozilla-Ocho/llamafile) website and download the [TinyLlama image](https://huggingface.co/jartine/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/TinyLlama-1.1B-Chat-v1.0.Q5_K_M.llamafile?download=true).
-
-Make sure it is executable:
-
+Clone the repo (and its submodules):
 ```bash
-chmod +x TinyLlama-1.1B-Chat-v1.0.Q5_K_M.llamafile
+git clone https://github.com/zhoupingjay/llm_voice_chatbot_rpi.git
+cd llm_voice_chatbot_rpi/
+git submodule update --init
 ```
+
+Download and build the dependencies:
+```
+./install.sh
+```
+
+The script will build and install these components under the `llm_voice_chatbot_rpi/` folder:
+
+```
+llm_voice_chatbot_rpi
+├── llm             (The LLM)
+├── piper           (The TTS program and model)
+└── whisper.cpp     (The ASR program)
+    └── models      (The ASR model)
+```
+
+- LLM: [TinyLlama](https://huggingface.co/jartine/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/TinyLlama-1.1B-Chat-v1.0.Q5_K_M.llamafile?download=true) installed under `llm` folder.
+- ASR: Binary in `whisper.cpp` folder, ASR model is downloaded under `whisper.cpp/models` folder.
+- TTS: [Piper for Raspberry Pi](https://github.com/rhasspy/piper/releases/download/v1.2.0/piper_arm64.tar.gz) binary and the [TTS model](https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/amy/medium/en_US-amy-medium.onnx?download=true), both installed under `piper` folder.
 
 ### Launch the LLM in server mode
 
 ```bash
-./TinyLlama-1.1B-Chat-v1.0.Q5_K_M.llamafile
+./llm/TinyLlama-1.1B-Chat-v1.0.Q5_K_M.llamafile --nobrowser
 ```
 
 By default, it will launch a server listening on local port 8080.
-
-### Install TTS program and model (piper)
-
-Download the [ARM64 binary](https://github.com/rhasspy/piper/releases/download/v1.2.0/piper_arm64.tar.gz), extra it to `/home/ubuntu`.
-The `piper` binary should be located in `/home/ubuntu/piper/`.
-
-Download the TTS model, for example:
-
-https://huggingface.co/rhasspy/piper-voices/tree/v1.0.0/en/en_US/amy/medium
-
-Download both `onnx` and `json` files, and put them under `/home/ubuntu/piper`.
 
 ### Launch the voice chatbot
 
@@ -86,7 +93,7 @@ python3 chatbot.py
 
 Push the button, speaker your request, and release the button.
 
-Be paitent - it will take a while for the device to transcribe the request and generate a response.
+Be patient - it will take a while for the device to transcribe the request and generate the response.
 
 ## Roadmap
 
