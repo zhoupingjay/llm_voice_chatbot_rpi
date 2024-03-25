@@ -81,25 +81,32 @@ def main():
         api_key = "sk-no-key-required"
     )
 
+    history = []
+    system_msg = {"role": "system", "content": "Your name is Amy. You are an AI Assistant. Your priority is helping users with their requests. Limit your response within 150 words."}
+
     print("Ready...")
     while(True):
         if GPIO.input(BUTTON) == GPIO.LOW:
             # Record and transcribe the request.
             record_wav()
-            # os.system("./asr -m ../whisper.cpp/models/ggml-tiny.bin -otxt input.wav")
             subprocess.run([args.asr, "-m", args.asr_model, "-otxt", args.recording])
             with open(f"{args.recording}.txt", "r") as file:
                 # Read the content of the file and store it in the variable "request"
                 request = file.read()
             print("Transcription: ", request)
 
+            print("========== HISTORY ==========")
+            for h in history:
+                print(h)
+            print("========== END OF HISTORY ==========")
+
             # Send the query to LLM.
+            messages = [ system_msg ]
+            messages.extend(history)
+            messages.append({"role": "user", "content": request})
             completion = client.chat.completions.create(
                 model="LLaMA_CPP",
-                messages=[
-                    {"role": "system", "content": "Your name is Amy. You are an AI assistant. Your priority is helping users with their requests."},
-                    {"role": "user", "content": request}
-                ],
+                messages = messages,
                 stream=True,
                 # temperature = 0.6,
             )
@@ -107,10 +114,10 @@ def main():
             print("=========================")
 
             acc = ""
-            raw = ""
+            resp = ""
             for chunk in completion:
                 txt = chunk.choices[0].delta.content
-                raw += txt or ""
+                resp += txt or ""
                 if txt is None:
                     time.sleep(0.01)
                 else:
@@ -119,7 +126,7 @@ def main():
                         sentences = acc.split(".")
                         utterance = ".".join(sentences[:-1])
                         utterance = utterance.replace('"', '')
-                        if len(utterance) > 4:
+                        if len(utterance) > 10:
                             print(utterance + ".")
                             acc = sentences[-1].lstrip()
                             speak_back(utterance)
@@ -129,10 +136,14 @@ def main():
                 utterance = acc.replace('"', '')
                 speak_back(utterance)
 
-            print("=========================")
-            print("==========RAW============")
-            print(raw)
-            print("=========================")
+            # Save the response in history
+            history.append({"role": "user", "content": request})
+            history.append({"role": "Assistant", "content": resp})
+            # Restrict the history to 2 rounds
+            if len(history) > 4:
+                history = history[2:]
+            
+            print("========== END OF RESPONSE ==========")
         else:
             # So we don't occupy the CPU...
             time.sleep(0.2)
