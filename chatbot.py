@@ -24,7 +24,7 @@ parser.add_argument('--llm_port', default=8080, help='Local port of the LLM serv
 parser.add_argument('--tts', default='./piper/piper', help='TTS program to use for speaking back.', type=str)
 parser.add_argument('--tts_model', default='./piper/en_US-amy-medium.onnx', help='TTS model to use for speaking back.', type=str)
 parser.add_argument('--asr', default='./whisper.cpp/main', help='Path to ASR program.', type=str)
-parser.add_argument('--asr_model', default='../whisper.cpp/models/ggml-tiny.bin', help='Path to ASR model.', type=str)
+parser.add_argument('--asr_model', default='./whisper.cpp/models/ggml-tiny.bin', help='Path to ASR model.', type=str)
 parser.add_argument('--recording', default='./recording/input.wav', help='Temporary recording file for ASR.', type=str)
 
 args = parser.parse_args()
